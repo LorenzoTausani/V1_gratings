@@ -1,0 +1,15 @@
+{
+    "sbj":"1289_23",
+    "session": "20230712_1289_pre2-20230712_1289_psilo1",
+    "reanalysis": true,
+    "stim_var": "Orientamenti",
+    "time_var": "N_frames",
+    "phys_dtype": "F",
+    "signal_of_interest": "F_minus_neu",
+    "phys_fn":["F.npy","Fneu.npy","iscell.npy","stat.npy"],
+    "stim_duration": "mode",
+    "stats_fun": ["mean","goodness", "OSI"],
+    "latency" : 0,
+    "dir_yn": true,
+    "threshold_dict": {"delta_gray_avg": 6, "OSI":0.5, "t_goodness":15}
+}
