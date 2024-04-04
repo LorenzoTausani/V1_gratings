@@ -1,4 +1,5 @@
 {
     "data_root_drive": "/content/drive/MyDrive/esperimenti2p_Tausani/",
-    "data_root_local": "c:/Users/loren/OneDrive/Desktop/2p data/"
+    "data_root_local": "c:/Users/loren/OneDrive/Desktop/2p data/",
+    "multiexp_fp":"c:/Users/loren/OneDrive/Desktop/2p_multiexp"
 }

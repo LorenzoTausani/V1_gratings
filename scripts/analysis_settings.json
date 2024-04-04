@@ -1,6 +1,4 @@
-{
-    "sbj":"1289_23",
-    "session": "20230712_1289_pre2-20230712_1289_psilo1",
+{   "sessions": "all",
     "reanalysis": true,
     "stim_var": "Orientamenti",
     "time_var": "N_frames",
@@ -11,5 +9,7 @@
     "stats_fun": ["mean","goodness", "OSI"],
     "latency" : 0,
     "dir_yn": true,
-    "threshold_dict": {"delta_gray_avg": 6, "OSI":0.5, "t_goodness":15}
+    "threshold_dict": {"delta_gray_avg": 6, "OSI":0.5, "t_goodness":15},
+    "recap_stats_plot": ["all", "delta_gray_avg", "delta_gray_avg and t_goodness"],
+    "idxs_only_pre": true
 }

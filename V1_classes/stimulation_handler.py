@@ -1,15 +1,18 @@
 from collections import defaultdict
+from datetime import datetime
+import json
 from os import path
 import os
 import pickle
 import re
 import warnings
 from scipy.stats import mode
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import DataFrame
+from V1_classes.plotting import recap_stats_plot
 from V1_classes.stat_funs import *
 
 from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats
@@ -47,6 +50,8 @@ class stimulation_data:
         self.path = fp
         self.analysis_settings = analysis_settings
         self.stim_var = analysis_settings['stim_var']
+        self.recap_stats_plot = analysis_settings['recap_stats_plot']
+        self.idxs_only_pre = analysis_settings['idxs_only_pre']
         self.ld_addkeys = add_keys_logicalDict
         self.df_var_rename = Stim_var_rename
         
@@ -159,11 +164,8 @@ class stimulation_data:
         logic_dict = self.data[ld_id]['logical_dict']
         #get the intervals where the stimulus is on (stim on) and their durations (stim_durations)
         stim_on = logic_dict[stim_name]; stim_durations = stim_on[:, 1] - stim_on[:, 0]
-        if stim_time == 'mode':
-            #we assume as stim duration the mode of the durations present in logical dict
-            stim_time = int(mode(stim_durations)[0]) 
-        else:
-            stim_time = int(stim_time) 
+        #'mode': we assume as stim duration the mode of the durations present in logical dict
+        stim_time = int(mode(stim_durations)[0]) if stim_time == 'mode' else int(stim_time)
 
         #initialize the NDArray containing the recordings (stim_phys_rec)
         stim_phys_rec = np.full((stim_on.shape[0], phys_rec.shape[0],stim_time), np.nan)
@@ -216,6 +218,70 @@ class stimulation_data:
         os.chdir(path.join(self.path,'Analyzed_data'))
         with open(fn, "wb") as file:
             pickle.dump(self, file)
-        
+    
+    def plot(self):
+        os.chdir(self.path)
+        os.makedirs('Plots', exist_ok=True)
+        os.chdir('Plots')
+        for grouping in self.recap_stats_plot:
+            os.makedirs(grouping, exist_ok=True)
+            if grouping == 'all':
+                idxs = {'pre': None,'psilo': None}
+            else:
+                if self.idxs_only_pre:
+                    idxs = self.rstats_dict['pre'][grouping]['idxs_above_threshold']
+                    idxs = {k:idxs for k in self.rstats_dict.keys()}
+                else:
+                    idxs = {k:v[grouping]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
                 
+            for k in self.recap_stats['pre'].keys():
+                x_range = (0,1) if k=='OSI' else None
+                    
+                recap_stats_plot(self.recap_stats,         
+                    var = k,
+                    x_range = x_range, 
+                    idxs = idxs,
+                    out_dir = path.join(self.path,'Plots',grouping)
+                    )
+
+class multi_session_data:
+    def __init__(self, analysis_settings:Dict[str,Any], savepath:str) -> None:
+        #get current datetime. It will be the name of the analysis folder
+        mexp_datetime = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
+        self.path = path.join(savepath,mexp_datetime)
+        self.analysis_settings = analysis_settings
+        self.sessions = defaultdict(list)
+        
+    def append_stats(self, recap_stats, sbj,sess):
+        for k,v in recap_stats.items():
+            v['Sbj'] = [sbj]*v.shape[0]; v['Session'] = [sess]*v.shape[0] 
+            self.sessions[k].append(v)
+                
+    def get_stats(self, threshold_dict):
+        self.data = {k:pd.concat(v, axis=0) for k,v in self.sessions.items()}
+        self.rstats_dict = {k:get_relevant_cell_stats(self.data[k], 
+                                        threshold_dict) for k in self.data.keys()}
+        
+    def select_data(self, pre_idxs = False, sel_key = 'delta_gray_avg'):
+        if pre_idxs:
+            idxs = {k:self.rstats_dict['pre'][sel_key]['idxs_above_threshold'] for k in self.rstats_dict.keys()}
+        else:
+            idxs = {k:v[sel_key]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
+        
+        return {k:v.iloc[idxs[k]] for k,v in self.data.items()}
+        
+    def save(self):
+        os.makedirs(self.path, exist_ok=True)
+        os.chdir(self.path)
+        os.makedirs('Analyzed_data', exist_ok=True)
+        os.chdir(os.path.join(self.path,'Analyzed_data'))
+        fn = "mexp_data.pkl"
+        with open(fn, "wb") as file:
+            pickle.dump(self, file)
+        with open('params.json', 'w') as json_file:
+            # Convert the dictionary to JSON and write it to the file
+            json.dump(self.analysis_settings, json_file , indent=4)
+        
+        
+        
 
