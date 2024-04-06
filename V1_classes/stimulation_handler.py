@@ -17,39 +17,40 @@ from V1_classes.stat_funs import *
 
 from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats
 
-
+#functions that will be computed on 2p data
 statf_dict = {'mean': get_mean_sem,
-              'goodness': trace_goodness,
-              'OSI': get_OSI}
+            'goodness': trace_goodness,
+            'OSI': get_OSI}
 
 
 class stimulation_data:
     def __init__(self, fp: str, analysis_settings:dict[str,Any], 
-                 add_keys_logicalDict: Callable[[dict[str, NDArray]],dict[str, NDArray]] | None = None,
-                 Stim_var_rename: Callable[[DataFrame,str],DataFrame] | None = None,
-                 stats_fun: list[Callable[['stimulation_data',str,NDArray],None]] = [get_mean_sem]):
+                add_keys_logicalDict: Callable[[dict[str, NDArray]],dict[str, NDArray]] | None = None,
+                Stim_var_rename: Callable[[DataFrame,str],DataFrame] | None = None,
+                stats_fun: list[Callable[['stimulation_data',str,NDArray],None]] = [get_mean_sem]):
 
         """
         Class to handle stimulation data coming from file .xlsx
 
         Parameters:
-        :param path: directory containing the .xlsx file
-        :type path: str
-        :param Stim_var: name of the column containing stimulus type
-        :type Stim_var: str
-        :param Time_var: name of the column containing stimulus onset time
-        :type Time_var: str
-        :param phys_recording_type: Type of physiological recording. Default is 'F' (i.e. fluorescence 2p).
-        :type phys_recording_type: str
-        :param stim_time: Type of physiological recording. Default is 'F' (i.e. fluorescence 2p).
-        :type stim_time: The desired duration of the stimulus. 'mode' to use mode of durations, 
-        or an integer value. Default is 'mode'.
-        
+        :param fp: directory containing the .xlsx file
+        :type fp: str
+        :param analysis_settings: dictionary containing the info for the analysis to be carried out
+        :type analysis_settings: dict[str,Any]
+        :param add_keys_logicalDict: function for adding integrated keys (e.g. '+') to the logical dictionary
+        :type add_keys_logicalDict: Callable[[dict[str, NDArray]],dict[str, NDArray]] | None
+        :param Stim_var_rename: function to rename the variables used in the stimulation (e.g. '180.0' -> '180)
+        :type Stim_var_rename: Callable[[DataFrame,str],DataFrame] | None
+        :param stats_fun: list of functions to be applied to the physiological data. Currently unused.
+        :type stats_fun: list[Callable[['stimulation_data',str,NDArray],None]]        
         """
         
         self.path = fp
         self.analysis_settings = analysis_settings
         self.stim_var = analysis_settings['stim_var']
+        self.conditions = analysis_settings['conditions']
+        if self.conditions==[]:
+            self.conditions = ['exp']
         self.recap_stats_plot = analysis_settings['recap_stats_plot']
         self.idxs_only_pre = analysis_settings['idxs_only_pre']
         self.ld_addkeys = add_keys_logicalDict
@@ -66,41 +67,52 @@ class stimulation_data:
         When called, get_stim_data organizes stimulation data (the most important is the key 
         logical_dict, that gathers all timestamps of different stimuli).
         """
-       
         xlsx_files = find_files_by_extension(dir = self.path, extension='.xlsx')
         #session names will contain the file dirs, without the extension
-        self.data = defaultdict(dict)
         
         #multiple .xlsx files are considered in case of multiple treatments in the same session (pre, post)
         #TODO: do appropriate ordering
         for ex_f in xlsx_files:
-            s_name = path.splitext(path.basename(ex_f))[0]
-            d_key = 'pre' if 'pre' in s_name else 'psilo'
-            s_df = pd.read_excel(ex_f)
-            if self.df_var_rename:
-               s_df = self.df_var_rename(s_df, self.stim_var)
+            s_name = path.splitext(path.basename(ex_f))[0] #name of the session
+            
+            s_df = pd.read_excel(ex_f) #get the session df
+            if self.df_var_rename: #do the variable renaming in case it has been initialized
+                s_df = self.df_var_rename(s_df, self.stim_var)
+                
+            #get the session condition
+            d_key = [c for c in self.conditions if c in s_name]
+            if len(d_key)>0:
+                raise TypeError(f"More that one condition found for session {s_name}: {d_key}")
+            elif d_key==[]:
+                raise TypeError(f"No condition found for session {s_name}")
+            d_key = d_key[0]
+                
+            self.data = defaultdict(dict)
+            #gather info about the session
             self.data[d_key]['s_name'] = s_name
             self.data[d_key]['df'] = s_df
             self.data[d_key]['stim_vec'] = self.get_StimVec(s_df)
             self.data[d_key]['stim_len'] = self.get_len_stims(s_df)
+
             #here below i create the logical dictionary
-            stim_names = s_df[self.stim_var].unique()
+            stim_names = s_df[self.stim_var].unique() #name of all unique stimuli
             logical_dict = {}
             for stim in stim_names:
                 if stim != 'END':
                     #define a boolean vector stimTrue
-                    stimTrue = self.data[d_key]['stim_vec'] == stim 
+                    stimTrue = self.data[d_key]['stim_vec'] == stim
                     #convert stimTrue in string of 1(T) and 0(F)
                     stimTrue_01 = ''.join('1' if x else '0' for x in stimTrue)
                     #find all sequences of consecutive 1 in stimTrue_01 and compute 
                     #their beginning and end indexes
                     logical_dict[str(stim)] = np.array([(match.start(), match.end()) 
                                             for match in re.finditer('1+', stimTrue_01)])
-            if self.ld_addkeys:
-               logical_dict = self.ld_addkeys(logical_dict)
+            if self.ld_addkeys: #if indicated, add integrated keys
+                logical_dict = self.ld_addkeys(logical_dict)
+                
             self.data[d_key]['logical_dict'] = logical_dict
+
             
-                 
     def get_StimVec(self, stimulation_df: DataFrame) -> NDArray:
         """
         Get a 1d vector that contains, for each time bin, the type of stimulation used.
@@ -109,17 +121,18 @@ class stimulation_data:
         :rtype: NDArray
         """
         time_var = self.analysis_settings['time_var']; stim_var = self.analysis_settings['stim_var']
+        #initialize a vector as long as the frames of the experiment
         StimVec = np.empty(stimulation_df[time_var].max(), dtype=object) 
         #fill in StimVec with the appropriate labels
-        top=0
-        for it, row in stimulation_df.iterrows():
-          if it==0:
-            prec_row = row
-          else:
-            StimVec[top:row[time_var]] = prec_row[stim_var]
-            top=row[time_var]
-            prec_row = row
-            
+        top=0 #pointer
+        for it, row in stimulation_df.iterrows(): #for every row of the df...
+            if it==0:
+                prec_row = row
+            else: #if it>0, fill the entries the pointer and the end of that stim (row[time_var])
+                # with the name of the stimulus itself (i.e. prec_row[stim_var])
+                StimVec[top:row[time_var]] = prec_row[stim_var]
+                top=row[time_var]
+                prec_row = row
         return StimVec
     
     def get_len_stims(self, stimulation_df: DataFrame): #controlla per dati diversi da Fluorescenza 2p
@@ -135,23 +148,27 @@ class stimulation_data:
     #@property
     #def len_recording(self)      -> NDArray: return np.stack(self._codes)
     
-    def get_recording(self, stim_name: str, phys_rec: NDArray, ld_id: str = 'pre',
-                      stim_time: int = 0, get_pre_stim: bool = False, latency=0) -> NDArray:
+    def get_recording(self, stim_name: str|list[str], phys_rec: NDArray, ld_id: str = 'exp',
+                    stim_time: int|str|None = None, get_pre_stim: bool = False, latency=0) -> NDArray:
         """
         Retrieves the physiological recordings corresponding to each occurrence of a stimulus.
 
         Parameters:
-        :param stim_name: name of the stimulus of interest
-        :type stim_name: str
+        :param stim_name: name of the stimulus/stimuli of interest.
+                        shortcuts of interest include: 'stim', 'gray', 'stim_gray','spontaneous', 'all'
+        :type stim_name: str|list[str]
         :param phys_rec: array containing physiological data
         :type phys_rec: NDArray
         :param ld_id: session on which to work (pre/psilo)
         :type ld_id: str
-        :param stim_time: duration of the stimulus of interest. If 0, uses default 
-                          as defined in analysis settings
-        :type stim_time: int
+        :param stim_time: duration of the stimulus of interest. If None, it reports all indexes
+            where the stims in stim_name were present. if 'settings', it takes the stim_time indicated in
+            the analysis_settings.
+            NOTE: if stim_time = None, you will get in output a 2D matrix (i.e. cells x timebin), else you will 
+            get a 3D matrix (i.e. stim occurrence x cells x timebin)
+        :type stim_time: int|None
         :param get_pre_stim: flag to decide wether to take the interval of interest
-                             before the stimulus onset
+                            before the stimulus onset
         :type get_pre_stim: bool
         :param latency: session on which to work (pre/psilo)
         :type latency: int
@@ -159,46 +176,91 @@ class stimulation_data:
         :return: Array containing the stimulus' physiological recordings.
         :rtype: NDArray
         """
-        if stim_time == 0:
+        #short names for particular parts of the session
+        if stim_name=='stim':
+            stim_name = ['+','-']
+        elif stim_name=='gray':
+            stim_name = ['gray +', 'gray -']
+        elif stim_name == 'stim_gray':
+            stim_name = ['+','-','gray +', 'gray -']
+        elif stim_name == 'spontaneous':
+            stim_name = ['initial gray','final gray']
+        elif stim_name == 'all':
+            stim_name = ['initial gray','final gray','+','-','gray +', 'gray -']
+
+        #convert stim_name into a list if it was given as a single string
+        stim_name = [stim_name] if isinstance(stim_name, str) else stim_name
+        
+        if stim_time == 'settings':
             stim_time = self.analysis_settings['stim_duration']
+        
         logic_dict = self.data[ld_id]['logical_dict']
         #get the intervals where the stimulus is on (stim on) and their durations (stim_durations)
-        stim_on = logic_dict[stim_name]; stim_durations = stim_on[:, 1] - stim_on[:, 0]
-        #'mode': we assume as stim duration the mode of the durations present in logical dict
-        stim_time = int(mode(stim_durations)[0]) if stim_time == 'mode' else int(stim_time)
-
-        #initialize the NDArray containing the recordings (stim_phys_rec)
-        stim_phys_rec = np.full((stim_on.shape[0], phys_rec.shape[0],stim_time), np.nan)
-        for i, stim_ev in enumerate(stim_on):
-            sev_begin = stim_ev[0]
-            #arbitrary criterion to assert that durations are correct
-            is_duration_correct = np.abs(stim_durations[i]-int(mode(stim_durations)[0]))< int(mode(stim_durations)[0])/10 
-            if not(is_duration_correct):
-                warnings.warn("stimulus class " +stim_name+ ' nr '+ str(i) + 'session '+ ld_id +
-                              'is of different length', UserWarning)
-            #check that the stim_ev has been fully recorded physiologically
-            is_phys_registered = phys_rec.shape[1] >= stim_on[i, 1]
-            if not(is_phys_registered):
-                warnings.warn("stimulus class " +stim_name+ ' nr '+ str(i) + 'session '+ ld_id +
-                              'was not fully recorded', UserWarning)
-            if is_duration_correct and is_phys_registered:
-                if get_pre_stim:
-                    sev_begin = sev_begin-latency
-                    stim_phys_rec[i,:,:] = phys_rec[:,sev_begin-stim_time:sev_begin]
-                else:
-                    sev_begin = sev_begin+latency
-                    stim_phys_rec[i,:,:] = phys_rec[:,sev_begin:sev_begin+stim_time]
+        stim_on    = np.concatenate([logic_dict[k] for k in stim_name])
+        stim_on    = stim_on[np.argsort(stim_on[:, 0])] #sort rows according to the first element of each row
+        stim_durations = stim_on[:, 1] - stim_on[:, 0]
+        # -- CASE 1: STIM TIME IS INDICATED (OUT: stim occurrence x cells x timebin) --
+        if stim_time:
+            #'mode': we assume as stim duration the mode of the durations present in logical dict
+            stim_time = int(mode(stim_durations)[0]) if stim_time == 'mode' else int(stim_time)
+            #initialize the NDArray containing the recordings (stim_phys_rec)
+            stim_phys_rec = np.full((stim_on.shape[0], phys_rec.shape[0],stim_time), np.nan)
+            for i, stim_ev in enumerate(stim_on):
+                sev_begin = stim_ev[0]
+                #arbitrary criterion to assert that durations are correct
+                is_duration_correct = np.abs(stim_durations[i]-int(mode(stim_durations)[0]))< int(mode(stim_durations)[0])/10 
+                if not(is_duration_correct):
+                    warnings.warn('stimulus nr '+ str(i) + 'session '+ ld_id +
+                                'is of different length', UserWarning)
+                #check that the stim_ev has been fully recorded physiologically
+                is_phys_registered = phys_rec.shape[1] >= stim_on[i, 1]
+                if not(is_phys_registered):
+                    warnings.warn('stimulus nr '+ str(i) + 'session '+ ld_id +
+                                'was not fully recorded', UserWarning)
+                if is_duration_correct and is_phys_registered:
+                    if get_pre_stim:
+                        sev_begin = sev_begin-latency
+                        stim_phys_rec[i,:,:] = phys_rec[:,sev_begin-stim_time:sev_begin]
+                    else:
+                        sev_begin = sev_begin+latency
+                        stim_phys_rec[i,:,:] = phys_rec[:,sev_begin:sev_begin+stim_time]
+        # -- CASE 2: STIM TIME IS None (OUT: cells x timebin) --
+        else:
+            #get the idxs of the timebins where the stimulus/i of interest were present
+            idxs = np.concatenate([np.arange(start, end) for start, end in stim_on])
+            stim_phys_rec = phys_rec[:,idxs]
+            
         return stim_phys_rec
 
 
     def get_stats(self, phys_rec: NDArray, recap_vars = ['t_goodness', 'delta_gray_avg', 'OSI_tuningC_df']):
+        """get the statistics you are interested in from your physiological recordings
+
+        :param phys_rec: array containing physiological data
+        :type phys_rec: NDArray
+        :param recap_vars: statistics you want to gather, 
+            defaults to ['t_goodness', 'delta_gray_avg', 'OSI_tuningC_df']
+        :type recap_vars: list, optional
+        """
         #TODO: la logica di estrazione delle sessioni va cambiata per il caso di sessioni singole
-        end_pre = self.data['pre']['stim_len'] 
-        
-        for fun in self.stats_fun:
+        end_conditions = {c:self.data[c]['stim_len'] for c in self.conditions}
+
+        # -- COMPUTE THE STATS ON THE RECORDING FOR EACH CONDITION --
+        for fun in self.stats_fun: #for each of the stats_fun indicated during init... 
             for k,data in self.data.items():
-                rec = phys_rec[:,:data['stim_len']] if k=='pre' else phys_rec[:,end_pre:end_pre+data['stim_len']]
-                fun(rec,self,k)
+                #slice the recording belonging to the particular condition
+                if k==self.conditions[0]:
+                    #ASSUMPTION: the recording starts with the experiment (this is the case for 2p)
+                    #to be checked for new data
+                    rec = phys_rec[:,:data['stim_len']]
+                else:
+                    #each phase begins from the end of the previous one
+                    start_rec = end_conditions[previous_key]
+                    rec = phys_rec[:,start_rec:start_rec+data['stim_len']]
+                previous_key = k
+                fun(rec,self,cond = k)
+                
+        # -- GATHER THE STATISTICS OF INTEREST --  
         for k,v in self.data.items():
             concat_dfs = []
             for rv in recap_vars:
@@ -208,7 +270,7 @@ class stimulation_data:
                     concat_dfs.append(pd.DataFrame({rv: v[rv]}))
             self.recap_stats[k] = pd.concat(concat_dfs, axis=1)
             self.rstats_dict[k] = get_relevant_cell_stats(self.recap_stats[k], 
-                                                 self.analysis_settings["threshold_dict"])
+                                    self.analysis_settings["threshold_dict"])
             
     def save(self):
         exp_n = path.splitext(path.basename(self.path))[0]
@@ -233,8 +295,7 @@ class stimulation_data:
                     idxs = {k:idxs for k in self.rstats_dict.keys()}
                 else:
                     idxs = {k:v[grouping]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
-                
-            for k in self.recap_stats['pre'].keys():
+            for k in self.recap_stats[self.conditions[0]].keys():
                 x_range = (0,1) if k=='OSI' else None
                     
                 recap_stats_plot(self.recap_stats,         
@@ -250,9 +311,14 @@ class multi_session_data:
         mexp_datetime = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
         self.path = path.join(savepath,mexp_datetime)
         self.analysis_settings = analysis_settings
+        self.conditions = analysis_settings['conditions']
+        if self.conditions == []:
+            self.conditions = 'exp'
+        
         self.sessions = defaultdict(list)
         
     def append_stats(self, recap_stats, sbj,sess):
+
         for k,v in recap_stats.items():
             v['Sbj'] = [sbj]*v.shape[0]; v['Session'] = [sess]*v.shape[0] 
             self.sessions[k].append(v)
@@ -264,7 +330,7 @@ class multi_session_data:
         
     def select_data(self, pre_idxs = False, sel_key = 'delta_gray_avg'):
         if pre_idxs:
-            idxs = {k:self.rstats_dict['pre'][sel_key]['idxs_above_threshold'] for k in self.rstats_dict.keys()}
+            idxs = {k:self.rstats_dict[self.conditions[0]][sel_key]['idxs_above_threshold'] for k in self.rstats_dict.keys()}
         else:
             idxs = {k:v[sel_key]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
         
