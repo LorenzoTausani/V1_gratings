@@ -69,7 +69,7 @@ def main():
                     #append stats to multiexp
                     multiexp.append_stats(stim_data.recap_stats, sbj = id, sess = session)
                     print(f" Session {session} of sbj {id} analyzed successfully")
-                    return stim_data, recording
+                    #return stim_data, recording
             except:
                 print(f" Unable to analyze session {session} of sbj {id}")
         

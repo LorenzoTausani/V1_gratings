@@ -23,7 +23,7 @@ def get_mean_sem(phys_rec: NDArray, s_obj, cond : str|None = None):
     Mean_SEM_dict = {}
     l_dict = s_obj.data[cond]['logical_dict']
     for key in l_dict.keys():
-        stim_rec = s_obj.get_recording(stim_name = key,ld_cond = cond, phys_rec = phys_rec)
+        stim_rec = s_obj.get_recording(stim_name = key,cond = cond, phys_rec = phys_rec)
         mean_betw_cells = np.mean(stim_rec, axis = 1)
         Mean = np.mean(mean_betw_cells, axis=0)
         #sem between cells for stimuli that are presented only once
@@ -95,9 +95,9 @@ def get_OSI(phys_rec: NDArray, s_obj, cond : str|None = None):
     s_obj.data[cond]['OSI_tuningC_sem'] = {}
 
     for _, k in enumerate(k_ori): #per ogni orientamento...
-        ori_rec = s_obj.get_recording(stim_name = k, phys_rec = phys_rec, ld_cond = cond,
+        ori_rec = s_obj.get_recording(stim_name = k, phys_rec = phys_rec, cond = cond,
                     stim_time = s_time, get_pre_stim = False, latency=l)
-        prestim_rec = s_obj.get_recording(stim_name = k, phys_rec = phys_rec, ld_cond = cond,
+        prestim_rec = s_obj.get_recording(stim_name = k, phys_rec = phys_rec, cond = cond,
                     stim_time = s_time, get_pre_stim = True, latency=l)
         
         avg_st = np.mean(ori_rec, axis = 2); avg_pre = np.mean(prestim_rec, axis = 2)

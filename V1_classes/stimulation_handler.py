@@ -56,6 +56,7 @@ class stimulation_data:
         self.ld_addkeys = add_keys_logicalDict
         self.df_var_rename = Stim_var_rename
         
+        self.data = defaultdict(dict)
         self.get_stim_data()
         self.stats_fun = [statf_dict[k] for k in analysis_settings['stats_fun'] if k in statf_dict]
         self.recap_stats = defaultdict(dict)
@@ -81,13 +82,12 @@ class stimulation_data:
                 
             #get the session condition
             d_key = [c for c in self.conditions if c in s_name]
-            if len(d_key)>0:
+            if len(d_key)>1:
                 raise TypeError(f"More that one condition found for session {s_name}: {d_key}")
             elif d_key==[]:
                 raise TypeError(f"No condition found for session {s_name}")
             d_key = d_key[0]
                 
-            self.data = defaultdict(dict)
             #gather info about the session
             self.data[d_key]['s_name'] = s_name
             self.data[d_key]['df'] = s_df
@@ -148,7 +148,7 @@ class stimulation_data:
     #@property
     #def len_recording(self)      -> NDArray: return np.stack(self._codes)
     
-    def get_recording(self, stim_name: str|list[str], phys_rec: NDArray, ld_id: str = 'exp',
+    def get_recording(self, stim_name: str|list[str], phys_rec: NDArray, cond: str = 'exp',
                     stim_time: int|str|None = None, get_pre_stim: bool = False, latency=0) -> NDArray:
         """
         Retrieves the physiological recordings corresponding to each occurrence of a stimulus.
@@ -159,8 +159,8 @@ class stimulation_data:
         :type stim_name: str|list[str]
         :param phys_rec: array containing physiological data
         :type phys_rec: NDArray
-        :param ld_id: session on which to work (pre/psilo)
-        :type ld_id: str
+        :param cond: session on which to work (pre/psilo)
+        :type cond: str
         :param stim_time: duration of the stimulus of interest. If None, it reports all indexes
             where the stims in stim_name were present. if 'settings', it takes the stim_time indicated in
             the analysis_settings.
@@ -194,7 +194,7 @@ class stimulation_data:
         if stim_time == 'settings':
             stim_time = self.analysis_settings['stim_duration']
         
-        logic_dict = self.data[ld_id]['logical_dict']
+        logic_dict = self.data[cond]['logical_dict']
         #get the intervals where the stimulus is on (stim on) and their durations (stim_durations)
         stim_on    = np.concatenate([logic_dict[k] for k in stim_name])
         stim_on    = stim_on[np.argsort(stim_on[:, 0])] #sort rows according to the first element of each row
@@ -210,12 +210,12 @@ class stimulation_data:
                 #arbitrary criterion to assert that durations are correct
                 is_duration_correct = np.abs(stim_durations[i]-int(mode(stim_durations)[0]))< int(mode(stim_durations)[0])/10 
                 if not(is_duration_correct):
-                    warnings.warn('stimulus nr '+ str(i) + 'session '+ ld_id +
+                    warnings.warn('stimulus nr '+ str(i) + 'session '+ cond +
                                 'is of different length', UserWarning)
                 #check that the stim_ev has been fully recorded physiologically
                 is_phys_registered = phys_rec.shape[1] >= stim_on[i, 1]
                 if not(is_phys_registered):
-                    warnings.warn('stimulus nr '+ str(i) + 'session '+ ld_id +
+                    warnings.warn('stimulus nr '+ str(i) + 'session '+ cond +
                                 'was not fully recorded', UserWarning)
                 if is_duration_correct and is_phys_registered:
                     if get_pre_stim:
