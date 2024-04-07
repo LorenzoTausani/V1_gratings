@@ -149,7 +149,7 @@ class stimulation_data:
     #def len_recording(self)      -> NDArray: return np.stack(self._codes)
     
     def get_recording(self, stim_name: str|list[str], phys_rec: NDArray, cond: str = 'exp',
-                    stim_time: int|str|None = None, get_pre_stim: bool = False, latency=0) -> NDArray:
+                    stim_time: int|str|None = None, get_pre_stim: bool = False, latency: int=0) -> NDArray:
         """
         Retrieves the physiological recordings corresponding to each occurrence of a stimulus.
 

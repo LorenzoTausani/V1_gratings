@@ -23,11 +23,11 @@ def get_mean_sem(phys_rec: NDArray, s_obj, cond : str|None = None):
     Mean_SEM_dict = {}
     l_dict = s_obj.data[cond]['logical_dict']
     for key in l_dict.keys():
-        stim_rec = s_obj.get_recording(stim_name = key,cond = cond, phys_rec = phys_rec)
-        mean_betw_cells = np.mean(stim_rec, axis = 1)
+        stim_rec = s_obj.get_recording(stim_name = key, stim_time = None,cond = cond, phys_rec = phys_rec)
+        mean_betw_cells = np.mean(stim_rec, axis = 0)
         Mean = np.mean(mean_betw_cells, axis=0)
         #sem between cells for stimuli that are presented only once
-        SEM = SEMf(stim_rec[0,:,:]) if stim_rec.shape[0]==1 else SEMf(mean_betw_cells)
+        SEM = SEMf(mean_betw_cells)
         Mean_SEM_dict[key] = np.column_stack((Mean, SEM))
 
     s_obj.data[cond]['mean_sem'] = Mean_SEM_dict

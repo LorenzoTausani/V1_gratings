@@ -1,5 +1,5 @@
 {   "sessions": "1289_23=[]",
-    "reanalysis": false,
+    "reanalysis": true,
     "stim_var": "Orientamenti",
     "time_var": "N_frames",
     "phys_dtype": "F",

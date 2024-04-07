@@ -54,7 +54,6 @@ def main():
                 stim_data = stimulation_data(fp = session_fp, analysis_settings = analysis_settings,
                                             add_keys_logicalDict= add_keys_logicalDict,
                                             Stim_var_rename = Stim_var_rename)
-                #return stim_data
                 if not(analysis_settings['reanalysis']):
                     stim_data.load()
                 if analysis_settings['reanalysis'] or  not(stim_data.recap_stats):
@@ -68,18 +67,18 @@ def main():
                     stim_data.save()
                     #if analysis_settings["recap_stats_plot"]:
                         #stim_data.plot()
-                        
+                    return stim_data, recording
                 #append stats to multiexp
                 multiexp.append_stats(stim_data.recap_stats, sbj = id, sess = session)
                 print(f" Session {session} of sbj {id} analyzed successfully")
-                #return stim_data, recording
+                
             except:
                 print(f" Unable to analyze session {session} of sbj {id}")
         
         #get stats for multiexp data and save them
         multiexp.get_stats(threshold_dict=analysis_settings["threshold_dict"])
         multiexp.save()
-        
+        return multiexp
         
         
         
