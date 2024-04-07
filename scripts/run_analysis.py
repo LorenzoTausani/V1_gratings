@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from os import path
 import os
+import platform
 
 from V1_classes.stimulation_handler import multi_session_data, stimulation_data
 from V1_classes.utils import Stim_var_rename, add_keys_logicalDict, load_2p_data, read_json, remove_dirs
@@ -12,7 +13,13 @@ LOCAL_SETTINGS = path.join(SCRIPT_DIR, 'local_settings.json')
 ANALYSIS_SETTINGS  = path.join(SCRIPT_DIR, 'analysis_settings.json')
 
 def path_os_style(fp, splitter = '/', rdir = 'c:'):
-    return path.join(*fp.split(splitter)).replace(rdir,rdir+os.sep)
+    op_sys = platform.system()
+    p = path.join(*fp.split(splitter))
+    if op_sys == 'Windows':
+        p = p.replace(rdir,rdir+os.sep)
+    elif op_sys == 'Linux':
+        p = os.sep+p
+    return p
 
 def main():
     script_settings    = read_json(path=LOCAL_SETTINGS)

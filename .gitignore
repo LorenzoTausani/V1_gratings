@@ -1,0 +1,17 @@
+# IDE local files
+*.vscode
+
+# Local packages
+*egg*
+
+# Pycache
+*.pyc
+*__*
+
+
+# Jupyter
+*.ipynb
+
+# Local settings - include example files
+*local_settings*
+!*.example
