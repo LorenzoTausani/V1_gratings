@@ -280,6 +280,19 @@ class stimulation_data:
         os.chdir(path.join(self.path,'Analyzed_data'))
         with open(fn, "wb") as file:
             pickle.dump(self, file)
+            
+    def load(self):
+        exp_n = path.splitext(path.basename(self.path))[0]
+        fn = "sd_"+exp_n+".pkl"
+        os.chdir(self.path)
+        if path.exists(path.join(self.path,'Analyzed_data',fn)):
+            os.chdir(path.join(self.path,'Analyzed_data'))
+            with open(fn, "rb") as file:
+                loaded = pickle.load(file)
+                self.__dict__.update(loaded.__dict__)
+            print(f"file {fn} loaded successfully")
+        else:
+            print(f"file {fn} not found")
     
     def plot(self):
         os.chdir(self.path)
