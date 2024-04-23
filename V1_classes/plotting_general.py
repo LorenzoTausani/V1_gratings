@@ -1,15 +1,22 @@
 import matplotlib.pyplot as plt 
 from matplotlib.axes import Axes
-from typing import List, Literal, Dict, Any
+from typing import List, Literal, Dict, Any, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
-from zdream.utils.misc import default
 
 # --- DEFAULT PLOTTING PARAMETERS ----
 
 _Shapes = Literal['square', 'rect_tall', 'rect_wide']
 _ax_selection = Literal['x', 'y', 'xy']
+
+# -- da zdream.utils.misc --
+# Type generics
+T = TypeVar('T')
+D = TypeVar('D')
+# Default for None with value
+def default(var : T | None, val : D) -> T | D:
+    return val if var is None else var
 
 def _get_appropriate_fontsz(xlabels: List[str], figure_width: float | int | None = None) -> float:
     '''
