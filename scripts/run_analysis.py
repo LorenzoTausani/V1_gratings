@@ -29,7 +29,6 @@ def main(fp = 'local'):
         data_root = path_os_style(script_settings["data_root_local"])
     else:
         data_root = path_os_style(script_settings["data_root_drive"])
-    data_root = path_os_style(script_settings["data_root_local"])
     multiexp_fp = path_os_style(script_settings["multiexp_fp"])
     #instantiate multiexp
     multiexp = multi_session_data(analysis_settings = analysis_settings,savepath=multiexp_fp)  
