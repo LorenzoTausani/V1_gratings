@@ -27,7 +27,9 @@ def main(fp = 'local'):
     # Set paths as defaults
     if fp == 'local':
         data_root = path_os_style(script_settings["data_root_local"])
-    else:
+    else: #on colab use gdrive
+        from google.colab import drive
+        drive.mount('/content/drive')
         data_root = path_os_style(script_settings["data_root_drive"])
     multiexp_fp = path_os_style(script_settings["multiexp_fp"])
     #instantiate multiexp
