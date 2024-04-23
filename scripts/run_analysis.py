@@ -21,10 +21,14 @@ def path_os_style(fp, splitter = '/', rdir = 'c:'):
         p = os.sep+p
     return p
 
-def main():
+def main(fp = 'local'):
     script_settings    = read_json(path=LOCAL_SETTINGS)
     analysis_settings  = read_json(path=ANALYSIS_SETTINGS)
     # Set paths as defaults
+    if fp == 'local':
+        data_root = path_os_style(script_settings["data_root_local"])
+    else:
+        data_root = path_os_style(script_settings["data_root_drive"])
     data_root = path_os_style(script_settings["data_root_local"])
     multiexp_fp = path_os_style(script_settings["multiexp_fp"])
     #instantiate multiexp
