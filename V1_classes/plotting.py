@@ -21,8 +21,8 @@ def recap_stats_plot(sd_recap_stats,
             num_bins: int  = 25,
             style: Dict[str, Dict[str, str]] = {
                         'pre': {'col': 'green'},
-                        'psilo': {'col': 'purple'}},
-            idxs: Dict[str, NDArray | None] = {'pre': None,'psilo': None},
+                        'psi': {'col': 'purple'}},
+            idxs: Dict[str, NDArray | None] = {'pre': None,'psi': None},
             bar_width: float = 0.4,
             out_dir: str|None = None
             ):
@@ -40,10 +40,10 @@ def recap_stats_plot(sd_recap_stats,
     :param num_bins: num bins in the histogram, defaults to 25
     :type num_bins: int, optional
     :param style: plot styling params
-        , defaults to { 'pre': {'col': 'green'}, 'psilo': {'col': 'purple'}}
+        , defaults to { 'pre': {'col': 'green'}, 'psi': {'col': 'purple'}}
     :type style: Dict[str, Dict[str, str]], optional
     :param idxs: subselection of indexes for sd_recap_stats, 
-        defaults to {'pre': None,'psilo': None}
+        defaults to {'pre': None,'psi': None}
     :type idxs: Dict[str, NDArray | None], optional
     :param bar_width: width of bar in barplot, defaults to 0.4
     :type bar_width: float, optional

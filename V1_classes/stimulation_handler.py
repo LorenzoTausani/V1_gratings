@@ -159,7 +159,7 @@ class stimulation_data:
         :type stim_name: str|list[str]
         :param phys_rec: array containing physiological data
         :type phys_rec: NDArray
-        :param cond: session on which to work (pre/psilo)
+        :param cond: session on which to work (pre/psi)
         :type cond: str
         :param stim_time: duration of the stimulus of interest. If None, it reports all indexes
             where the stims in stim_name were present. if 'settings', it takes the stim_time indicated in
@@ -170,7 +170,7 @@ class stimulation_data:
         :param get_pre_stim: flag to decide wether to take the interval of interest
                             before the stimulus onset
         :type get_pre_stim: bool
-        :param latency: session on which to work (pre/psilo)
+        :param latency: session on which to work (pre/psi)
         :type latency: int
         
         :return: Array containing the stimulus' physiological recordings.
@@ -301,7 +301,7 @@ class stimulation_data:
         for grouping in self.recap_stats_plot:
             os.makedirs(grouping, exist_ok=True)
             if grouping == 'all':
-                idxs = {'pre': None,'psilo': None}
+                idxs = {'pre': None,'psi': None}
             else:
                 if self.idxs_only_pre:
                     idxs = self.rstats_dict['pre'][grouping]['idxs_above_threshold']
