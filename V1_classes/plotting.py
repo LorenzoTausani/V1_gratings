@@ -167,7 +167,6 @@ def plot_PSTH(stim_data, phys_rec: np.ndarray, cells_of_interest: dict[str,np.nd
             numeric_part = ''.join(filter(str.isdigit, s))
             return int(numeric_part) if numeric_part else -1
         stimuli_of_interest.sort(key=lambda x: extract_number(x))
-        print(stimuli_of_interest)
     conds = list(stim_data.data.keys())    
     params = set_default_matplotlib_params(l_side=15, shape='rect_wide'); subplots_nr = len(stimuli_of_interest)
     
