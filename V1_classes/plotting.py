@@ -11,7 +11,7 @@ from typing import Dict, cast
 from matplotlib.axes import Axes
 
 from V1_classes.plotting_general import set_default_matplotlib_params
-from V1_classes.utils import contains_character
+from V1_classes.utils import SEMf, contains_character
 
     
 def recap_stats_plot(sd_recap_stats,
@@ -112,6 +112,96 @@ def recap_stats_plot(sd_recap_stats,
         out_fp = path.join(out_dir, fn)
         fig.savefig(out_fp, bbox_inches="tight")
     
+def plot_mean_pm_sem(data: np.ndarray, ax: Axes|None = None, color: str = 'red') -> tuple[np.ndarray, np.ndarray]:
+    """
+    Plot the mean +/- standard error of the mean (SEM) of the given data.
+
+    Parameters:
+        data (np.ndarray): The input data as a numpy array.
+        ax (Axes, optional): The axis to plot on. If None, a new figure is created. Defaults to None.
+        color (str, optional): The color of the plot. Defaults to 'red'.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: A tuple containing the mean and SEM arrays.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    params = set_default_matplotlib_params(l_side=15, shape='rect_wide')
+
+    mean = np.mean(data, axis=0); sem = SEMf(data, axis=0)
+    upper_bound = mean + sem; lower_bound = mean - sem
+
+    ax.plot(mean, color=color)
+    ax.fill_between(range(len(mean)), lower_bound, upper_bound, color=color, alpha=0.2)
+
+    if ax is None:
+        plt.show()
+    
+    return mean, sem
+
+def plot_PSTH(stim_data, phys_rec: np.ndarray, cells_of_interest: dict[str,np.ndarray],  
+            out_dir: str, stimuli_of_interest: list|None = None, time_stim: int = 150, 
+            time_prestim: int = 150 ,ylbl: str = 'Fluorescence', xlbl: str = 'time(frames)') -> np.ndarray:
+    """
+    Plot the Peri-Stimulus Time Histogram (PSTH) for a given physiological recording over a set of stimuli.
+
+    Parameters:
+        stim_data: The stimulus data object.
+        phys_rec: The physiological recording data.
+        stimuli_of_interest: The list of stimuli of interest.
+        cells_of_interest: The indices of cells of interest.
+        cond: The index for logical dictionary. Defaults to 0.
+        time_stim: The duration of the stimulus. Defaults to 150.
+        time_prestim: The duration of the pre-stimulus. Defaults to 150.
+        ylbl: y label
+        xlbl: x label
+
+    Returns:
+        np.ndarray: The concatenated pre-post stimulus data.
+    """
+    if stimuli_of_interest is None: 
+        all_stims = list(stim_data.data['pre']['logical_dict'].keys())
+        #we exclude grays and spontaneous activity
+        stimuli_of_interest = [st for st in all_stims if contains_character(st,'[\d\+\-]') and not(contains_character(st,'g'))]
+        def extract_number(s):
+            numeric_part = ''.join(filter(str.isdigit, s))
+            return int(numeric_part) if numeric_part else -1
+        stimuli_of_interest.sort(key=lambda x: extract_number(x))
+        print(stimuli_of_interest)
+    conds = list(stim_data.data.keys())    
+    params = set_default_matplotlib_params(l_side=15, shape='rect_wide'); subplots_nr = len(stimuli_of_interest)
+    
+    fig, axes = plt.subplots(subplots_nr, len(conds), figsize=(params['figure.figsize'][0], params['figure.figsize'][1] * subplots_nr))  # Create subplot grid
+    for c_i,cond in enumerate(conds):
+        cells = cells_of_interest[cond]
+        for i, stimulus in enumerate(stimuli_of_interest):
+            try:
+                #selection of stimulus-related data
+                stimulus_phys_rec = stim_data.get_recording(stimulus, phys_rec, cond = cond, stim_time=time_stim)
+                selected_stim_recs = stimulus_phys_rec[:, cells, :]
+                if not(isinstance(cells, int)):
+                    selected_stim_recs = selected_stim_recs.reshape(-1, selected_stim_recs.shape[-1])   
+                if time_prestim > 0: #If requested, selection of period preceding the stimulus
+                    pre_phys_recs = stim_data.get_recording(stimulus, phys_rec, cond = cond, get_pre_stim=True, stim_time=time_stim)
+                    selected_pre_recs = pre_phys_recs[:, cells, :]
+                    if not(isinstance(cells, int)):
+                        selected_pre_recs = selected_pre_recs.reshape(-1, selected_pre_recs.shape[-1])
+                    pre_post_stim = np.hstack((selected_pre_recs, selected_stim_recs))
+                    stim_onset = selected_pre_recs.shape[-1]; axes[i,c_i].axvline(x=stim_onset, color='green', linestyle='--') #line indicating stimulus onset
+                else:
+                    pre_post_stim = selected_stim_recs  
+                plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i])
+                axes[i,c_i].set_title(stimulus+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
+            except:
+                print(f"Error in plotting {stimulus} {cond}") 
+    
+    plt.tight_layout()
+    plt.show()
+    if out_dir:
+        out_fp = path.join(out_dir, 'PSTH.png')
+        fig.savefig(out_fp, bbox_inches="tight")
+    
+    return pre_post_stim
 
 def Ori_pieplot(out_df: DataFrame, 
                 ax: Axes | None = None):

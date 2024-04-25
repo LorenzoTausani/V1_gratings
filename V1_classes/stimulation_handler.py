@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import DataFrame
-from V1_classes.plotting import recap_stats_plot
+from V1_classes.plotting import plot_PSTH, recap_stats_plot
 from V1_classes.stat_funs import *
 
 from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats
@@ -294,7 +294,7 @@ class stimulation_data:
         else:
             print(f"file {fn} not found")
     
-    def plot(self):
+    def plot(self, phys_rec):
         os.chdir(self.path)
         os.makedirs('Plots', exist_ok=True)
         os.chdir('Plots')
@@ -317,6 +317,8 @@ class stimulation_data:
                     idxs = idxs,
                     out_dir = path.join(self.path,'Plots',grouping)
                     )
+                plot_PSTH(self, phys_rec, idxs,  
+                    out_dir =path.join(self.path,'Plots',grouping))
 
 class multi_session_data:
     def __init__(self, analysis_settings:Dict[str,Any], savepath:str) -> None:
