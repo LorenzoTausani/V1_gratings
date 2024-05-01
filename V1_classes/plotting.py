@@ -112,7 +112,7 @@ def recap_stats_plot(sd_recap_stats,
         out_fp = path.join(out_dir, fn)
         fig.savefig(out_fp, bbox_inches="tight")
     
-def plot_mean_pm_sem(data: NDArray, ax: Axes|None = None, color: str = 'red') -> tuple[NDArray, NDArray]:
+def plot_mean_pm_sem(data: NDArray, ax: Axes|None = None, color: str = 'red', line_lab: str = 'Avg') -> tuple[NDArray, NDArray]:
     """
     Plot the mean +/- standard error of the mean (SEM) of the given data.
 
@@ -131,7 +131,7 @@ def plot_mean_pm_sem(data: NDArray, ax: Axes|None = None, color: str = 'red') ->
     mean = np.mean(data, axis=0); sem = SEMf(data, axis=0)
     upper_bound = mean + sem; lower_bound = mean - sem
 
-    ax.plot(mean, color=color)
+    ax.plot(mean, color=color, label=line_lab)
     ax.fill_between(range(len(mean)), lower_bound, upper_bound, color=color, alpha=0.2)
 
     if ax is None:
@@ -166,7 +166,14 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
         stimuli_of_interest = [st for st in all_stims if contains_character(st,'[\d\+\-]') and not(contains_character(st,'g'))]
         def extract_number(s):
             numeric_part = ''.join(filter(str.isdigit, s))
-            return int(numeric_part) if numeric_part else -1
+            if '+' in s:
+                sign = -0.1
+            elif '-' in s:
+                sign = -0.2
+            else:
+                sign = 0
+            numeric = int(numeric_part) if numeric_part else -1
+            return numeric + sign
         stimuli_of_interest.sort(key=lambda x: extract_number(x))
         
     conds = list(stim_data.data.keys())
@@ -203,8 +210,9 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
                         pre_post_stim = np.hstack((selected_pre_recs, selected_stim_recs))
                         stim_onset = selected_pre_recs.shape[-1]; axes[i,c_i].axvline(x=stim_onset, color='green', linestyle='--') #line indicating stimulus onset
                     else:
-                        pre_post_stim = selected_stim_recs  
-                    plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i], color = cols[j])
+                        pre_post_stim = selected_stim_recs
+                    line_lab = 'all' if stim[-1].isdigit() else stim[-1]
+                    plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i], color = cols[j], line_lab = line_lab)
                 except:
                     print(f"Error in plotting {stim} {cond}") 
                     
