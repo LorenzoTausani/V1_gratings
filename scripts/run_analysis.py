@@ -46,7 +46,6 @@ def main(fp = 'local',load_mexp = False):
             st = ';'.join([s+'=[]' for s in sbjs])
         #subjects to analyze are separated by semicolumn (;)
         sbjs2an = st.split(';')
-        print(sbjs2an)
         # -- ANALYSIS LOOP --
         for sbj in sbjs2an:
             #parsing of the input string (sbj = [sessions])
@@ -83,6 +82,8 @@ def main(fp = 'local',load_mexp = False):
                             stim_data.plot(recording)
                         #return stim_data, recording
                     #append stats to multiexp
+                    if id == 'da ritrovare':
+                        return multiexp, stim_data, session
                     multiexp.append_stats(stim_data.recap_stats, sbj = id, sess = session)
                     print(f" Session {session} of sbj {id} analyzed successfully")
                     

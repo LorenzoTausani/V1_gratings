@@ -333,11 +333,10 @@ class multi_session_data:
         self.sessions = defaultdict(list)
         
     def append_stats(self, recap_stats, sbj,sess):
-
         for k,v in recap_stats.items():
             v['Sbj'] = [sbj]*v.shape[0]; v['Session'] = [sess]*v.shape[0] 
             self.sessions[k].append(v)
-                
+            
     def get_stats(self, threshold_dict):
         self.data = {k:pd.concat(v, axis=0) for k,v in self.sessions.items()}
         self.rstats_dict = {k:get_relevant_cell_stats(self.data[k], 
