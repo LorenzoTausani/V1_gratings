@@ -310,13 +310,17 @@ class stimulation_data:
                     idxs = {k:v[grouping]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
             for k in self.recap_stats[self.conditions[0]].keys():
                 x_range = (0,1) if k=='OSI' else None
-                    
-                recap_stats_plot(self.recap_stats,         
-                    var = k,
-                    x_range = x_range, 
-                    idxs = idxs,
-                    out_dir = path.join(self.path,'Plots',grouping)
-                    )
+                #se non ci sono celle sopra la soglia per un particolare grouping
+                if any([len(l)==0 if l is not None else False for l in idxs.values()]):
+                    sbj_sess = os.sep.join(self.path.split(os.sep)[-2:])
+                    warnings.warn(f"No cells found for {grouping} - Sbj {sbj_sess}")
+                else:
+                    recap_stats_plot(self.recap_stats,         
+                        var = k,
+                        x_range = x_range, 
+                        idxs = idxs,
+                        out_dir = path.join(self.path,'Plots',grouping)
+                        )
             plot_PSTH(self, phys_rec, idxs,  grouping_func = group_by_ori, 
                 out_dir =path.join(self.path,'Plots',grouping))
 

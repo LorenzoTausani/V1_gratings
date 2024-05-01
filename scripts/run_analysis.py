@@ -82,8 +82,6 @@ def main(fp = 'local',load_mexp = False):
                             stim_data.plot(recording)
                         #return stim_data, recording
                     #append stats to multiexp
-                    if id == 'da ritrovare':
-                        return multiexp, stim_data, session
                     multiexp.append_stats(stim_data.recap_stats, sbj = id, sess = session)
                     print(f" Session {session} of sbj {id} analyzed successfully")
                     
