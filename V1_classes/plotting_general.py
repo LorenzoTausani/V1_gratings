@@ -1,6 +1,7 @@
+import matplotlib
 import matplotlib.pyplot as plt 
 from matplotlib.axes import Axes
-from typing import List, Literal, Dict, Any, TypeVar
+from typing import List, Literal, Dict, Any, TypeVar, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -196,3 +197,51 @@ def customize_axes_bounds(ax: Axes):
         
         ax.spines[side].set_bounds(low_b, up_b)
         
+        
+def get_colors(n_cols: int, colormap: str = 'jet') -> NDArray:
+    """
+    Generates a list of colors by sampling evenly from a specified colormap.
+
+    :param n_cols: The number of colors to generate.
+    :type n_cols: int
+    :param colormap: The name of the colormap to sample from, defaults to 'jet'.
+    :type colormap: str, optional
+    :return: An array of RGBA color values.
+    :rtype: NDArray
+    """
+    cmap = plt.cm.get_cmap(colormap) # Get the colormap
+    # Generate n_cols evenly spaced values between 0 and 1
+    # These will be used to sample from the colormap
+    values = np.linspace(0, 1, n_cols)
+    # Get the colors from the colormap
+    colors = cmap(values)
+
+    return colors
+
+def get_color_from_name(color_name: str, colormap: str ='jet') -> Union[NDArray, None]:
+    """
+    Returns the closest color from a specified colormap to a given named color.
+
+    :param color_name: The name of the color to match.
+    :type color_name: str
+    :param colormap: The name of the colormap to sample from, defaults to 'jet'.
+    :type colormap: str, optional
+    :return: An RGBA color value from the colormap that is closest to the named color, or None if the color name is not recognized.
+    :rtype: np.ndarray | None
+    """
+    cmap = plt.cm.get_cmap(colormap)  # Get the colormap
+    colors = cmap(np.linspace(0, 1, 256))  # Get 256 colors from the colormap
+    named_colors = matplotlib.colors.cnames  # Get named colors
+
+    if color_name in named_colors:
+        color_rgb = matplotlib.colors.to_rgb(color_name)  # Convert named color to RGB
+        color_rgb = list(color_rgb)+[1]  # Add alpha channel
+        # Find the closest color in the colormap
+        color_diffs = colors - color_rgb
+        color_diff_magnitudes = np.linalg.norm(color_diffs, axis=1)
+        closest_color_index = np.argmin(color_diff_magnitudes)
+        closest_color = colors[closest_color_index]
+        return closest_color
+    else:
+        print(f"{color_name} is not a recognized color name.")
+        return None

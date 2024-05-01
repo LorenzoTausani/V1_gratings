@@ -10,7 +10,7 @@ from pandas import DataFrame
 from typing import Dict, cast, Callable
 from matplotlib.axes import Axes
 
-from V1_classes.plotting_general import set_default_matplotlib_params
+from V1_classes.plotting_general import get_color_from_name, get_colors, set_default_matplotlib_params
 from V1_classes.utils import SEMf, contains_character
 
     
@@ -140,7 +140,7 @@ def plot_mean_pm_sem(data: NDArray, ax: Axes|None = None, color: str = 'red') ->
     return mean, sem
 
 def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray],  
-            out_dir: str, stimuli_of_interest: list|None = None, time_stim: int = 150, 
+            out_dir: str|None = None, stimuli_of_interest: list|None = None, time_stim: int = 150, 
             time_prestim: int = 150 ,ylbl: str = 'Fluorescence', xlbl: str = 'time(frames)',
             grouping_func: Callable|None = None) -> NDArray:
     """
@@ -172,8 +172,10 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
     conds = list(stim_data.data.keys())
     if grouping_func is not None:
         stimuli_of_interest, groupnames = grouping_func(stimuli_of_interest)
+        cols = get_colors(max(len(st) for st in stimuli_of_interest))
     else:
         groupnames = None
+        cols = [get_color_from_name('red')]
     params = set_default_matplotlib_params(l_side=15, shape='rect_wide'); subplots_nr = len(stimuli_of_interest)
     
     fig, axes = plt.subplots(subplots_nr, len(conds), figsize=(params['figure.figsize'][0], params['figure.figsize'][1] * subplots_nr))  # Create subplot grid
@@ -181,12 +183,12 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
         cells = cells_of_interest[cond]
         for i, stimulus in enumerate(stimuli_of_interest):
             if not isinstance(stimulus, list): 
-                stimulus = [stimulus]
                 groupname = stimulus
+                stimulus = [stimulus]
             else:
                 groupname = groupnames[i]
-                
-            for stim in stimulus:
+
+            for j, stim in enumerate(stimulus):
                 try:
                     #selection of stimulus-related data
                     stimulus_phys_rec = stim_data.get_recording(stim, phys_rec, cond = cond, stim_time=time_stim)
@@ -202,12 +204,11 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
                         stim_onset = selected_pre_recs.shape[-1]; axes[i,c_i].axvline(x=stim_onset, color='green', linestyle='--') #line indicating stimulus onset
                     else:
                         pre_post_stim = selected_stim_recs  
-                    plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i])
+                    plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i], color = cols[j])
                 except:
                     print(f"Error in plotting {stim} {cond}") 
                     
             axes[i,c_i].set_title(groupname+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
-
     
     plt.tight_layout()
     plt.show()
@@ -216,6 +217,7 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
         fig.savefig(out_fp, bbox_inches="tight")
     
     return pre_post_stim
+
 
 def Ori_pieplot(out_df: DataFrame, 
                 ax: Axes | None = None):
