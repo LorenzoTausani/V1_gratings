@@ -77,8 +77,8 @@ def recap_stats_plot(sd_recap_stats,
         if v[var].dtype == 'object': #i.e. it is composed of strings
             fn = 'bar_'+var+'.png'
             counts = v[var].value_counts(normalize=True) * 100
-            for key in list(counts.keys()):
-                if key not in union_vals:
+            for key in union_vals:
+                if key not in list(counts.keys()):
                     counts[key] = 0
             #sort by orientation
             counts.index = counts.index.astype(int)
