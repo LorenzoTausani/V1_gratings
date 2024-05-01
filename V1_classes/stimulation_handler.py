@@ -317,8 +317,8 @@ class stimulation_data:
                     idxs = idxs,
                     out_dir = path.join(self.path,'Plots',grouping)
                     )
-                plot_PSTH(self, phys_rec, idxs,  grouping_func = group_by_ori, 
-                    out_dir =path.join(self.path,'Plots',grouping))
+            plot_PSTH(self, phys_rec, idxs,  grouping_func = group_by_ori, 
+                out_dir =path.join(self.path,'Plots',grouping))
 
 class multi_session_data:
     def __init__(self, analysis_settings:Dict[str,Any], savepath:str) -> None:
