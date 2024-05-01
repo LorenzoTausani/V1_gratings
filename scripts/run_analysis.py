@@ -44,7 +44,7 @@ def main(fp = 'local'):
         st = ';'.join([s+'=[]' for s in sbjs])
     #subjects to analyze are separated by semicolumn (;)
     sbjs2an = st.split(';')
-    
+    print(sbjs2an)
     # -- ANALYSIS LOOP --
     for sbj in sbjs2an:
         #parsing of the input string (sbj = [sessions])
