@@ -66,13 +66,20 @@ def recap_stats_plot(sd_recap_stats,
     # Compute min and max values
     if not x_range:
         x_range = (min([v[var].min() for _,v in ds_deepcopy.items()]),
-                max([v[var].max() for _,v in ds_deepcopy.items()]))    
-                
+                max([v[var].max() for _,v in ds_deepcopy.items()]))
+    
+    conds = list(ds_deepcopy.keys())
+    if ds_deepcopy[conds[0]][var].dtype == 'object':
+        set_vals = [set(ds_deepcopy[k][var].unique()) for k in conds]
+        union_vals = list(set().union(*set_vals))
     
     for i,(k,v) in enumerate(ds_deepcopy.items()):
         if v[var].dtype == 'object': #i.e. it is composed of strings
             fn = 'bar_'+var+'.png'
             counts = v[var].value_counts(normalize=True) * 100
+            for key in list(counts.keys()):
+                if key not in union_vals:
+                    counts[key] = 0
             #sort by orientation
             counts.index = counts.index.astype(int)
             counts = counts.sort_index()
