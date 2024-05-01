@@ -15,7 +15,7 @@ from pandas import DataFrame
 from V1_classes.plotting import plot_PSTH, recap_stats_plot
 from V1_classes.stat_funs import *
 
-from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats
+from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats, group_by_ori
 
 #functions that will be computed on 2p data
 statf_dict = {'mean': get_mean_sem,
@@ -317,7 +317,7 @@ class stimulation_data:
                     idxs = idxs,
                     out_dir = path.join(self.path,'Plots',grouping)
                     )
-                plot_PSTH(self, phys_rec, idxs,  
+                plot_PSTH(self, phys_rec, idxs,  grouping_func = group_by_ori, 
                     out_dir =path.join(self.path,'Plots',grouping))
 
 class multi_session_data:

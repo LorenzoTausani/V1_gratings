@@ -228,7 +228,7 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
         out_fp = path.join(out_dir, 'PSTH.png')
         fig.savefig(out_fp, bbox_inches="tight")
     
-    return pre_post_stim
+    #return pre_post_stim
 
 def Ori_pieplot(out_df: DataFrame, 
                 ax: Axes | None = None):
