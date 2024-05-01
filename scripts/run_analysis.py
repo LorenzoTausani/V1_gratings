@@ -87,10 +87,10 @@ def main(fp = 'local'):
             except:
                 print(f" Unable to analyze session {session} of sbj {id}")
         
-        #get stats for multiexp data and save them
-        multiexp.get_stats(threshold_dict=analysis_settings["threshold_dict"])
-        multiexp.save()
-        return multiexp
+    #get stats for multiexp data and save them
+    multiexp.get_stats(threshold_dict=analysis_settings["threshold_dict"])
+    multiexp.save()
+    return multiexp
         
         
         
