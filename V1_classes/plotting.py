@@ -10,7 +10,7 @@ from pandas import DataFrame
 from typing import Dict, cast, Callable
 from matplotlib.axes import Axes
 
-from V1_classes.plotting_general import get_color_from_name, get_colors, set_default_matplotlib_params
+from V1_classes.plotting_general import arbitrary_legend, get_color_from_name, get_colors, set_default_matplotlib_params
 from V1_classes.utils import SEMf, contains_character
 
     
@@ -180,7 +180,7 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
     if grouping_func is not None:
         stimuli_of_interest, groupnames = grouping_func(stimuli_of_interest)
         cols = get_colors(max(len(st) for st in stimuli_of_interest))
-        line_labs = ['-','+','all']
+        line_labs = ['-','+','all'] #TODO: generalize to other grouping_func other than group_by_ori
     else:
         groupnames = None
         cols = [get_color_from_name('red')]
@@ -218,8 +218,9 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
                     print(f"Error in plotting {stim} {cond}") 
                     
             axes[i,c_i].set_title(groupname+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
-            lab_col_style = [[l,c] for l,c in zip(line_labs, cols)]
-            arbitrary_legend(fig, lab_col_style)
+            if grouping_func is not None: #TODO: generalize to other grouping_func other than group_by_ori
+                lab_col_style = [[l,c] for l,c in zip(line_labs, cols)]
+                arbitrary_legend(fig, lab_col_style)
 
     plt.tight_layout()
     plt.show()
