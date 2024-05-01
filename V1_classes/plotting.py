@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from pandas import DataFrame
-from typing import Dict, cast
+from typing import Dict, cast, Callable
 from matplotlib.axes import Axes
 
 from V1_classes.plotting_general import set_default_matplotlib_params
@@ -112,17 +112,17 @@ def recap_stats_plot(sd_recap_stats,
         out_fp = path.join(out_dir, fn)
         fig.savefig(out_fp, bbox_inches="tight")
     
-def plot_mean_pm_sem(data: np.ndarray, ax: Axes|None = None, color: str = 'red') -> tuple[np.ndarray, np.ndarray]:
+def plot_mean_pm_sem(data: NDArray, ax: Axes|None = None, color: str = 'red') -> tuple[NDArray, NDArray]:
     """
     Plot the mean +/- standard error of the mean (SEM) of the given data.
 
     Parameters:
-        data (np.ndarray): The input data as a numpy array.
+        data (NDArray): The input data as a numpy array.
         ax (Axes, optional): The axis to plot on. If None, a new figure is created. Defaults to None.
         color (str, optional): The color of the plot. Defaults to 'red'.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: A tuple containing the mean and SEM arrays.
+        tuple[NDArray, NDArray]: A tuple containing the mean and SEM arrays.
     """
     if ax is None:
         fig, ax = plt.subplots()
@@ -139,9 +139,10 @@ def plot_mean_pm_sem(data: np.ndarray, ax: Axes|None = None, color: str = 'red')
     
     return mean, sem
 
-def plot_PSTH(stim_data, phys_rec: np.ndarray, cells_of_interest: dict[str,np.ndarray],  
+def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray],  
             out_dir: str, stimuli_of_interest: list|None = None, time_stim: int = 150, 
-            time_prestim: int = 150 ,ylbl: str = 'Fluorescence', xlbl: str = 'time(frames)') -> np.ndarray:
+            time_prestim: int = 150 ,ylbl: str = 'Fluorescence', xlbl: str = 'time(frames)',
+            grouping_func: Callable|None = None) -> NDArray:
     """
     Plot the Peri-Stimulus Time Histogram (PSTH) for a given physiological recording over a set of stimuli.
 
@@ -157,7 +158,7 @@ def plot_PSTH(stim_data, phys_rec: np.ndarray, cells_of_interest: dict[str,np.nd
         xlbl: x label
 
     Returns:
-        np.ndarray: The concatenated pre-post stimulus data.
+        NDArray: The concatenated pre-post stimulus data.
     """
     if stimuli_of_interest is None: 
         all_stims = list(stim_data.data['pre']['logical_dict'].keys())
@@ -167,32 +168,46 @@ def plot_PSTH(stim_data, phys_rec: np.ndarray, cells_of_interest: dict[str,np.nd
             numeric_part = ''.join(filter(str.isdigit, s))
             return int(numeric_part) if numeric_part else -1
         stimuli_of_interest.sort(key=lambda x: extract_number(x))
-    conds = list(stim_data.data.keys())    
+        
+    conds = list(stim_data.data.keys())
+    if grouping_func is not None:
+        stimuli_of_interest, groupnames = grouping_func(stimuli_of_interest)
+    else:
+        groupnames = None
     params = set_default_matplotlib_params(l_side=15, shape='rect_wide'); subplots_nr = len(stimuli_of_interest)
     
     fig, axes = plt.subplots(subplots_nr, len(conds), figsize=(params['figure.figsize'][0], params['figure.figsize'][1] * subplots_nr))  # Create subplot grid
     for c_i,cond in enumerate(conds):
         cells = cells_of_interest[cond]
         for i, stimulus in enumerate(stimuli_of_interest):
-            try:
-                #selection of stimulus-related data
-                stimulus_phys_rec = stim_data.get_recording(stimulus, phys_rec, cond = cond, stim_time=time_stim)
-                selected_stim_recs = stimulus_phys_rec[:, cells, :]
-                if not(isinstance(cells, int)):
-                    selected_stim_recs = selected_stim_recs.reshape(-1, selected_stim_recs.shape[-1])   
-                if time_prestim > 0: #If requested, selection of period preceding the stimulus
-                    pre_phys_recs = stim_data.get_recording(stimulus, phys_rec, cond = cond, get_pre_stim=True, stim_time=time_stim)
-                    selected_pre_recs = pre_phys_recs[:, cells, :]
+            if not isinstance(stimulus, list): 
+                stimulus = [stimulus]
+                groupname = stimulus
+            else:
+                groupname = groupnames[i]
+                
+            for stim in stimulus:
+                try:
+                    #selection of stimulus-related data
+                    stimulus_phys_rec = stim_data.get_recording(stim, phys_rec, cond = cond, stim_time=time_stim)
+                    selected_stim_recs = stimulus_phys_rec[:, cells, :]
                     if not(isinstance(cells, int)):
-                        selected_pre_recs = selected_pre_recs.reshape(-1, selected_pre_recs.shape[-1])
-                    pre_post_stim = np.hstack((selected_pre_recs, selected_stim_recs))
-                    stim_onset = selected_pre_recs.shape[-1]; axes[i,c_i].axvline(x=stim_onset, color='green', linestyle='--') #line indicating stimulus onset
-                else:
-                    pre_post_stim = selected_stim_recs  
-                plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i])
-                axes[i,c_i].set_title(stimulus+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
-            except:
-                print(f"Error in plotting {stimulus} {cond}") 
+                        selected_stim_recs = selected_stim_recs.reshape(-1, selected_stim_recs.shape[-1])   
+                    if time_prestim > 0: #If requested, selection of period preceding the stimulus
+                        pre_phys_recs = stim_data.get_recording(stim, phys_rec, cond = cond, get_pre_stim=True, stim_time=time_stim)
+                        selected_pre_recs = pre_phys_recs[:, cells, :]
+                        if not(isinstance(cells, int)):
+                            selected_pre_recs = selected_pre_recs.reshape(-1, selected_pre_recs.shape[-1])
+                        pre_post_stim = np.hstack((selected_pre_recs, selected_stim_recs))
+                        stim_onset = selected_pre_recs.shape[-1]; axes[i,c_i].axvline(x=stim_onset, color='green', linestyle='--') #line indicating stimulus onset
+                    else:
+                        pre_post_stim = selected_stim_recs  
+                    plot_mean_pm_sem(pre_post_stim, ax=axes[i,c_i])
+                except:
+                    print(f"Error in plotting {stim} {cond}") 
+                    
+            axes[i,c_i].set_title(groupname+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
+
     
     plt.tight_layout()
     plt.show()

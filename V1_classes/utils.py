@@ -346,3 +346,20 @@ def create_variable_dict(locals_or_globals: dict,
             print('\033[1mVariable {} not found\033[0m'.format(var))
 
     return variable_dict
+
+
+# -- GROUP CONDITIONS --
+def group_by_ori(conds):
+    # Create a dictionary to group conditions by their numeric part
+    grouped_conds = {}
+    for cond in conds:
+        # Extract the numeric part of the condition
+        ori = ''.join(filter(str.isdigit, cond))
+        if ori == '':
+            ori = cond
+        # Add the condition to the appropriate group
+        if ori not in grouped_conds:
+            grouped_conds[ori] = []
+        grouped_conds[ori].append(cond)
+    # Convert the dictionary to a list of lists
+    return list(grouped_conds.values()), list(grouped_conds.keys())
