@@ -180,6 +180,7 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
     if grouping_func is not None:
         stimuli_of_interest, groupnames = grouping_func(stimuli_of_interest)
         cols = get_colors(max(len(st) for st in stimuli_of_interest))
+        line_labs = ['-','+','all']
     else:
         groupnames = None
         cols = [get_color_from_name('red')]
@@ -217,7 +218,9 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
                     print(f"Error in plotting {stim} {cond}") 
                     
             axes[i,c_i].set_title(groupname+' '+cond); axes[i,c_i].set_xlabel(xlbl); axes[i,c_i].set_ylabel(ylbl)
-    
+            lab_col_style = [[l,c] for l,c in zip(line_labs, cols)]
+            arbitrary_legend(fig, lab_col_style)
+
     plt.tight_layout()
     plt.show()
     if out_dir:
@@ -225,7 +228,6 @@ def plot_PSTH(stim_data, phys_rec: NDArray, cells_of_interest: dict[str,NDArray]
         fig.savefig(out_fp, bbox_inches="tight")
     
     return pre_post_stim
-
 
 def Ori_pieplot(out_df: DataFrame, 
                 ax: Axes | None = None):

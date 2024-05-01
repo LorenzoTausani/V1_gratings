@@ -1,6 +1,8 @@
 import matplotlib
 import matplotlib.pyplot as plt 
 from matplotlib.axes import Axes
+from matplotlib.lines import Line2D
+from matplotlib.figure import Figure
 from typing import List, Literal, Dict, Any, TypeVar, Union
 
 import numpy as np
@@ -245,3 +247,30 @@ def get_color_from_name(color_name: str, colormap: str ='jet') -> Union[NDArray,
     else:
         print(f"{color_name} is not a recognized color name.")
         return None
+    
+def arbitrary_legend(fig: Figure, lab_col_style: List[List[str]],
+                    n_cols: int|None = None, location: str = 'lower center', 
+                    bbox: tuple[float, float, float, float] = (0., -0.01, 1., .102)) -> None:
+    """
+    Adds a custom legend to a matplotlib figure.
+
+    :param fig: The figure to add the legend to.
+    :type fig: Figure
+    :param lab_col_style: A list of lists, where each inner list contains a label, a color, and optionally a linestyle.
+    :type lab_col_style: List[List[str]]
+    :param n_cols: The number of columns in the legend, defaults to the number of labels.
+    :type n_cols: int, optional
+    :param location: The location of the legend, defaults to 'lower center'.
+    :type location: str, optional
+    :param bbox: The bounding box of the legend in figure coordinates, defaults to (0., -0.01, 1., .102).
+    :type bbox: Tuple[float, float, float, float], optional
+    """
+    handles = [] #this will contain the fake lines for the legend
+    n_cols = len(lab_col_style) if n_cols is None else n_cols
+    for lcs in lab_col_style:
+        if len(lcs) == 2:#default linestyle is solid
+            lcs.append('-')
+        #populate the fake handles with the appropriate linestyle and color
+        handles.append(Line2D([0], [0], linestyle=lcs[2], linewidth=3, color=lcs[1], label=lcs[0]))
+    #add the legend to the figure
+    fig.legend(handles=handles, loc=location, bbox_to_anchor=bbox, ncol=n_cols)

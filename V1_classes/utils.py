@@ -356,7 +356,10 @@ def group_by_ori(conds):
         # Extract the numeric part of the condition
         ori = ''.join(filter(str.isdigit, cond))
         if ori == '':
-            ori = cond
+            if cond == '+' or cond == '-':
+                ori = '+/-'
+            else:       
+                ori = cond
         # Add the condition to the appropriate group
         if ori not in grouped_conds:
             grouped_conds[ori] = []
