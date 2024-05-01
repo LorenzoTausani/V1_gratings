@@ -297,7 +297,7 @@ def get_relevant_cell_stats(cell_stats_df: DataFrame,
 
 
 def multioption_prompt(opt_list: list[str], 
-                       in_prompt: str) -> Union[str, list[str]]:
+                    in_prompt: str) -> Union[str, list[str]]:
     """
     Prompt the user to choose from a list of options.
     

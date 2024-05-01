@@ -15,7 +15,7 @@ from pandas import DataFrame
 from V1_classes.plotting import plot_PSTH, recap_stats_plot
 from V1_classes.stat_funs import *
 
-from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats, group_by_ori
+from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats, group_by_ori, multioption_prompt
 
 #functions that will be computed on 2p data
 statf_dict = {'mean': get_mean_sem,
@@ -362,6 +362,22 @@ class multi_session_data:
         with open('params.json', 'w') as json_file:
             # Convert the dictionary to JSON and write it to the file
             json.dump(self.analysis_settings, json_file , indent=4)
+
+    def load(self):
+        fn = "mexp_data.pkl"
+        mexp_fp = path.dirname(self.path)
+        os.chdir(mexp_fp)
+        folders = [d for d in os.listdir('.') if os.path.isdir(d)]
+        sel_dir = multioption_prompt(folders, "Select the experiment of interest:")
+        self.path = path.join(mexp_fp,sel_dir)
+        if path.exists(path.join(self.path,'Analyzed_data',fn)):
+            os.chdir(path.join(self.path,'Analyzed_data'))
+            with open(fn, "rb") as file:
+                loaded = pickle.load(file)
+                self.__dict__.update(loaded.__dict__)
+            print(f"file {fn} loaded successfully")
+        else:
+            print(f"file {fn} not found")
         
         
         
