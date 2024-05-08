@@ -1,3 +1,4 @@
+import pandas as pd
 from V1_classes.OSI_DSI_utils import compute_OSI
 from V1_classes.utils import SEMf, contains_character
 
@@ -108,7 +109,20 @@ def get_OSI(phys_rec: NDArray, s_obj, cond : str|None = None):
 
     s_obj.data[cond]['delta_gray_avg'] = np.mean([np.mean(v, axis = 0)*100 for _,v 
                             in s_obj.data[cond]['OSI_delta_st_pre'].items()], axis=0)
-    s_obj.data[cond]['OSI_tuningC_df'] = compute_OSI(s_obj.data[cond]['OSI_tuningC_avg'])    
+    s_obj.data[cond]['OSI_tuningC_df'] = compute_OSI(s_obj.data[cond]['OSI_tuningC_avg'])  
+
+def get_corr(phys_rec, s_obj, cond : str|None = None):
+    corr_phases = s_obj.analysis_settings['corr_phases']
+    #save the indexes of the upper triangle of the correlation matrix
+    upper_tri_idxs = np.triu_indices(phys_rec.shape[0], k=1)
+    row_col = [(i,j) for i,j in zip(*upper_tri_idxs)]
+    corr_df = pd.DataFrame({'row_col': row_col})
+    for phase in corr_phases:
+        stim_rec = s_obj.get_recording(stim_name = phase, stim_time = None,cond = cond, phys_rec = phys_rec)
+        corr_mat = np.corrcoef(stim_rec)
+        corr_vec = corr_mat[upper_tri_idxs]
+        corr_df[phase] = corr_vec
+    s_obj.data[cond]['corr'] = corr_df  
     
 
 
