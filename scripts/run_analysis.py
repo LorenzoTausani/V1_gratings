@@ -80,7 +80,7 @@ def main(fp = 'local',load_mexp = False):
                         stim_data.save()
                         if analysis_settings["recap_stats_plot"]:
                             stim_data.plot(recording)
-                        #return stim_data, recording
+                        return stim_data, recording
                     #append stats to multiexp
                     multiexp.append_stats(stim_data.recap_stats, sbj = id, sess = session)
                     print(f" Session {session} of sbj {id} analyzed successfully")
