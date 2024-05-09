@@ -22,7 +22,7 @@ def recap_stats_plot(sd_recap_stats,
             style: Dict[str, Dict[str, str]] = {
                         'pre': {'col': 'green'},
                         'psi': {'col': 'purple'}},
-            idxs: Dict[str, NDArray | None] = {'pre': None,'psi': None},
+            idxs: Dict[str, NDArray | None] |None = {'pre': None,'psi': None},
             bar_width: float = 0.4,
             out_dir: str|None = None
             ):
@@ -56,13 +56,15 @@ def recap_stats_plot(sd_recap_stats,
     #to avoid rewriting sd_recap_stats
     ds_deepcopy = copy.deepcopy(sd_recap_stats)
     #select the indexes of interest
-    for k,v in idxs.items():
-        if v is not None:
-            ds_deepcopy[k] =  ds_deepcopy[k].iloc[v]
+    if idxs is not None:
+        for k,v in idxs.items():
+            if v is not None:
+                ds_deepcopy[k] =  ds_deepcopy[k].iloc[v]
 
     if not(ax):
         fig, ax = plt.subplots(1)
-
+    ax = cast(Axes, ax)
+    
     # Compute min and max values
     if not x_range:
         x_range = (min([v[var].min() for _,v in ds_deepcopy.items()]),

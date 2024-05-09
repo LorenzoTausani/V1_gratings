@@ -1,3 +1,4 @@
+import itertools
 import pandas as pd
 from V1_classes.OSI_DSI_utils import compute_OSI
 from V1_classes.utils import SEMf, contains_character
@@ -112,6 +113,14 @@ def get_OSI(phys_rec: NDArray, s_obj, cond : str|None = None):
     s_obj.data[cond]['OSI_tuningC_df'] = compute_OSI(s_obj.data[cond]['OSI_tuningC_avg'])  
 
 def get_corr(phys_rec, s_obj, cond : str|None = None):
+    """
+    Calculate correlation matrix for each stimulus phase and save the results.
+
+    Parameters:
+    - phys_rec (np.ndarray): Array of physiological recordings.
+    - s_obj: Stimulation data object.
+    - cond (str, optional): Condition string. Default is None.
+    """
     corr_phases = s_obj.analysis_settings['corr_phases']
     #save the indexes of the upper triangle of the correlation matrix
     upper_tri_idxs = np.triu_indices(phys_rec.shape[0], k=1)
@@ -123,6 +132,30 @@ def get_corr(phys_rec, s_obj, cond : str|None = None):
         corr_vec = corr_mat[upper_tri_idxs]
         corr_df[phase] = corr_vec
     s_obj.data[cond]['corr'] = corr_df  
+    
+    
+def get_corr_dict(stim_data, grouping = 'all'):
+    corr_dict = {}
+    n_cells = stim_data.recap_stats['pre'].shape[0]
+    for cond in stim_data.conditions:
+        corr_df = stim_data.data[cond]['corr']
+        if grouping == 'all':
+            idxs = np.arange(0, n_cells)
+            selected_rows = corr_df
+        else:
+            idxs = sorted(stim_data.rstats_dict[cond][grouping]['idxs_above_threshold'])
+            combinations = list(itertools.combinations(idxs, 2))
+            selected_rows = corr_df[corr_df['row_col'].isin(combinations)]
+            
+        stats = []
+        for i in idxs:
+            sel_df = selected_rows[selected_rows['row_col'].apply(lambda x: i in x)]
+            stats.append(np.mean(sel_df.select_dtypes(include=[np.number]), axis = 0))
+        df = pd.concat([s.to_frame().T for s in stats])
+        df.index = idxs
+        corr_dict[cond] = df
+    
+    return corr_dict
     
 
 

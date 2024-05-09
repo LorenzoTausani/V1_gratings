@@ -8,7 +8,7 @@
     "conditions":["pre", "psi"],
     "corr_phases": ["all","initial gray","final gray","spontaneous","stim","gray","stim_gray"],
     "stim_duration": "mode",
-    "stats_fun": ["mean","goodness", "OSI"],
+    "stats_fun": ["mean","goodness", "OSI","corr"],
     "latency" : 0,
     "dir_yn": true,
     "threshold_dict": {"delta_gray_avg": 6, "OSI":0.5, "t_goodness":15},

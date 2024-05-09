@@ -20,7 +20,8 @@ from V1_classes.utils import find_files_by_extension, get_relevant_cell_stats, g
 #functions that will be computed on 2p data
 statf_dict = {'mean': get_mean_sem,
             'goodness': trace_goodness,
-            'OSI': get_OSI}
+            'OSI': get_OSI,
+            'corr': get_corr,}
 
 
 class stimulation_data:
@@ -232,7 +233,6 @@ class stimulation_data:
             
         return stim_phys_rec
 
-
     def get_stats(self, phys_rec: NDArray, recap_vars = ['t_goodness', 'delta_gray_avg', 'OSI_tuningC_df']):
         """get the statistics you are interested in from your physiological recordings
 
@@ -271,7 +271,7 @@ class stimulation_data:
             self.recap_stats[k] = pd.concat(concat_dfs, axis=1)
             self.rstats_dict[k] = get_relevant_cell_stats(self.recap_stats[k], 
                                     self.analysis_settings["threshold_dict"])
-            
+                        
     def save(self):
         exp_n = path.splitext(path.basename(self.path))[0]
         fn = "sd_"+exp_n+".pkl"
@@ -308,6 +308,7 @@ class stimulation_data:
                     idxs = {k:idxs for k in self.rstats_dict.keys()}
                 else:
                     idxs = {k:v[grouping]['idxs_above_threshold'] for k,v in self.rstats_dict.items()}
+                    
             for k in self.recap_stats[self.conditions[0]].keys():
                 x_range = (0,1) if k=='OSI' else None
                 #se non ci sono celle sopra la soglia per un particolare grouping
@@ -321,6 +322,17 @@ class stimulation_data:
                         idxs = idxs,
                         out_dir = path.join(self.path,'Plots',grouping)
                         )
+                    
+            corr_dict = get_corr_dict(self, grouping)
+            for k in self.data[self.conditions[0]]['corr'].keys():
+                if not(k == 'row_col'):
+                    recap_stats_plot(corr_dict,         
+                        var = k,
+                        x_range = None, 
+                        idxs = None,
+                        out_dir = path.join(self.path,'Plots',grouping)
+                        )
+            
             plot_PSTH(self, phys_rec, idxs,  grouping_func = group_by_ori, 
                 out_dir =path.join(self.path,'Plots',grouping))
 
